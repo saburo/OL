@@ -6,7 +6,8 @@
   //  [x] scale
   //  [x] scale with anchor
   //  [x] translate
-  //  [ ] rotate
+  //  [x] rotate
+  //  [x] reselecting anchor point
   //
   // Click
   //  w/ Alt key - Change anchor location
@@ -143,8 +144,31 @@
       pos[1] + e.movementY - anc_pos[1],
       pos[0] + e.movementX - anc_pos[0]
     );
+    const theta = ang2 - ang1;
 
-    rotation += ang2 - ang1;
+    const ctr_x = left + w / 2;
+    const ctr_y = top + h / 2;
+
+    const x = anc_pos[0] - ctr_x;
+    const y = anc_pos[1] - ctr_y;
+
+    const s = Math.sin(theta);
+    const c = Math.cos(theta);
+
+    const X = x * c - y * s;
+    const Y = y * c + x * s;
+
+    rotation += theta;
+    left += x - X;
+    top += y - Y;
+  }
+
+  function get_img_center() {
+    // w/ rotation
+    //
+    // w/o rotation
+    const c_x = left + w / 2;
+    const c_y = top + h / 2;
   }
 
   // init();
@@ -165,8 +189,7 @@
         left: {left}px; 
         width: {w}px; 
         height: {h}px; 
-        transform-origin: {anc_org_x}px {anc_org_y}px;
-        transform: rotate({rotation}rad);
+        rotate: {rotation}rad;
         background-image: url({futaba});
       "
     >
