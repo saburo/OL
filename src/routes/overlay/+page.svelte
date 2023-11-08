@@ -177,8 +177,6 @@
 <svelte:window on:mouseup={mouse_up} on:mousemove={mouse_moving} />
 
 <section>
-  <h1>test overlay</h1>
-  <button on:click={handle_reset_button}>Reset</button>
   <div class="image-canvas">
     <div
       id="myimg"
@@ -197,15 +195,22 @@
     </div>
   </div>
   <div class="anchor" style="left: {anc_left}px; top: {anc_top}px;" />
+  <button class="reset-button" on:click={handle_reset_button}>Reset</button>
 </section>
 
 <style>
+  .reset-button {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 999;
+  }
   .image-canvas {
-    position: relative;
+    position: absolute;
     top: 0;
     left: 0;
-    width: 1000px;
-    height: 1000px;
+    width: 100%;
+    height: 95%;
     background-color: #eee;
     overflow: hidden;
   }
