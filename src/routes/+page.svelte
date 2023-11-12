@@ -1,6 +1,7 @@
 <script>
-  import { onMount } from "svelte";
-  import futaba from "$lib/images/IMG_7739.jpg";
+  import { onMount, onDestroy } from "svelte";
+  import { convertFileSrc } from "@tauri-apps/api/tauri";
+  import Controller from "./Controller.svelte";
 
   // TODO
   //  [x] scale
@@ -19,38 +20,118 @@
 
   let box;
 
-  let top, left;
-  let w, h;
+  let top = 0;
+  let left = 0;
+  let w = 0;
+  let h = 0;
+  let org_w = 0;
+  let org_h = 0;
   let anchor_size;
   let is_dragging;
-  let anc_top;
-  let anc_left;
-  let scale;
-  let rotation;
-  let anc_org_x;
-  let anc_org_y;
+  let anc_top = 0;
+  let anc_left = 0;
+  let scale = { x: 1, y: 1 };
+  let rotation = 0;
+  let opacity = [1, 1];
+  let tmp_opacity = 1;
+  let img_path = "";
+  let g_img = "";
+
+  let shift_state = false;
+  let alt_state = false;
+  let meta_state = false;
+
+  let reset_state = false;
+
+  $: cursor = get_cursor(alt_state, shift_state, meta_state);
+
+  $: {
+    if (reset_state) {
+      init();
+      reset_state = false;
+    }
+  }
+
+  $: {
+    set_image(img_path);
+    console.log("img");
+  }
+
+  // $: {
+  //   console.log("w or h changed");
+  //   if (w) {
+  //     document.querySelector(".image-frame", w);
+  //   }
+  // }
 
   onMount(async () => {
     init();
+    window.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "Shift":
+          shift_state = true;
+          break;
+        case "Alt":
+          alt_state = true;
+          break;
+        case "Meta":
+          meta_state = true;
+          break;
+        default:
+          break;
+      }
+      // if (e.key == "Shift") {
+      //   shift_state = true;
+      // }
+      // if (e.key == "Alt") {
+      //   alt_state = true;
+      // }
+      // if (e.key == "Meta") {
+      //   meta_state = true;
+      // }
+
+      // console.log("keydown", e.code, e.key);
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key == "Shift") {
+        shift_state = false;
+      }
+
+      if (e.key == "Alt") {
+        alt_state = false;
+      }
+
+      if (e.key == "Meta") {
+        meta_state = false;
+      }
+
+      if (e.key === " ") {
+        console.log("space bar");
+        toggle_opacity();
+      }
+      // console.log("keyup", e.code, e.key);
+    });
   });
 
-  function init() {
+  onDestroy(async () => {
+    // window.removeEventListener("keyup");
+    // window.removeEventListener("keydown");
+  });
+
+  function init(w_img = true) {
     top = 0;
     left = 0;
-    w = 420;
-    h = 560;
     is_dragging = false;
     anchor_size = 10;
     scale = { x: 1, y: 1 };
     rotation = 0;
-    anc_org_x = 0;
-    anc_org_y = 0;
+    opacity = [1, 1];
     box = document.querySelector(".image-canvas");
     set_anchor_pos(0, 0);
-  }
 
-  function handle_reset_button() {
-    init();
+    if (w_img) {
+      set_image(img_path);
+    }
   }
 
   function mouse_down(e) {
@@ -64,12 +145,12 @@
       return;
     }
 
-    if (e.shiftKey) {
+    if (shift_state) {
       shifting(e);
       return;
     }
 
-    if (e.metaKey) {
+    if (meta_state) {
       rotating(e);
       return;
     }
@@ -82,7 +163,7 @@
   }
 
   function mouse_click(e) {
-    if (!e.altKey) {
+    if (!alt_state) {
       return;
     }
     const pos = get_mouse_pos(e);
@@ -107,11 +188,6 @@
   function set_anchor_pos(x, y) {
     anc_left = x - anchor_size / 2 + box.offsetLeft;
     anc_top = y - anchor_size / 2 + box.offsetTop;
-    anc_org_x = x;
-    anc_org_y = y;
-
-    // console.log(anc_left, anc_top, x, y);
-    // console.log(document.querySelector("#myimg").style.transformOrigin);
   }
 
   function shifting(e) {
@@ -171,75 +247,148 @@
     const c_y = top + h / 2;
   }
 
-  // init();
+  function get_cursor(a, s, m) {
+    let c = "nwse-resize";
+    if (a) {
+      c = "crosshair";
+    } else if (m) {
+      c = "cell";
+    } else if (s) {
+      c = "move";
+    }
+
+    return c;
+  }
+
+  function toggle_opacity() {
+    console.log("toggle");
+    if (opacity[0] > 0) {
+      tmp_opacity = [opacity[0], opacity[1]];
+      opacity = [0, 1];
+    } else {
+      opacity = [tmp_opacity[0], tmp_opacity[1]];
+    }
+  }
+
+  function set_image(img_path) {
+    if (img_path == "") {
+      return;
+    }
+
+    const bw = box.offsetWidth;
+    const bh = box.offsetHeight;
+
+    const img = new Image();
+
+    img.onload = () => {
+      g_img = img.src;
+      org_w = img.width;
+      org_h = img.height;
+      const r2 = img.height / img.width;
+
+      if (bw < bh / r2) {
+        w = bw;
+        h = w * r2;
+      } else {
+        h = bh;
+        w = h / r2;
+      }
+    };
+
+    img.src = convertFileSrc(img_path);
+  }
+
+  async function read_file_contents() {
+    try {
+      const selected_path = await open({
+        multiple: false,
+        title: "Open Image File",
+      });
+
+      if (selected_path == null) {
+        return;
+      }
+
+      img_path = selected_path;
+      set_image(selected_path);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 </script>
 
 <svelte:window on:mouseup={mouse_up} on:mousemove={mouse_moving} />
 
 <section>
+  <div class="anchor" style="left: {anc_left}px; top: {anc_top}px;" />
+  <Controller
+    bind:opacity
+    bind:img_path
+    bind:reset_state
+    bind:rotation
+    bind:top
+    bind:left
+    bind:w
+    bind:h
+    bind:anc_top
+    bind:anc_left
+    bind:org_w
+    bind:org_h
+    bind:alt_state
+    bind:shift_state
+    bind:meta_state
+  />
   <div class="image-canvas">
     <div
-      id="myimg"
-      class="img-frame"
+      class="image-frame"
       on:click={mouse_click}
+      on:mousedown={mouse_down}
+      role="none"
       style="
-        top: {top}px; 
-        left: {left}px; 
-        width: {w}px; 
-        height: {h}px; 
-        rotate: {rotation}rad;
-        background-image: url({futaba});
+      top: {top}px; 
+      left: {left}px; 
+      width: {w}px; 
+      height: {h}px; 
+      rotate: {rotation}rad;
+      opacity: {opacity[0]};
+      background-image: url({g_img});
+      cursor: {cursor};
       "
-    >
-      <div class="img-handle-br" on:mousedown={mouse_down} />
-    </div>
+    />
   </div>
-  <div class="anchor" style="left: {anc_left}px; top: {anc_top}px;" />
-  <button class="reset-button" on:click={handle_reset_button}>Reset</button>
 </section>
 
 <style>
-  .reset-button {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 999;
+  :root {
+    --top-offset: 60px;
   }
   .image-canvas {
     position: absolute;
-    top: 0;
+    top: var(--top-offset);
     left: 0;
     width: 100%;
-    height: 95%;
-    background-color: #eee;
+    height: calc(100% - var(--top-offset));
+    background-color: transparent;
     overflow: hidden;
-  }
-  .img-frame {
-    position: relative;
-    top: 0;
-    left: 0;
-    height: 560px;
-    width: 420px;
-    background-repeat: no-repeat;
-    border: 1px solid #ff0000;
-    background-size: 100% 100%;
+    user-select: none;
+    border: 1px solid #999999;
   }
 
-  .img-handle-br {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    background-color: #ff000022;
+  .image-frame {
+    position: relative;
+    /* border: 1px solid #ff0000; */
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
     user-select: none;
-    cursor: move;
   }
 
   .anchor {
     position: absolute;
     width: 10px;
     height: 10px;
-    background-color: steelblue;
+    /* background-color: steelblue; */
+    background-color: #fc0fc0;
+    border-radius: 50%;
+    z-index: 100;
   }
 </style>
