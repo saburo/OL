@@ -20,6 +20,18 @@
 
   let box;
 
+  let img_info = {
+    top: 0,
+    left: 0,
+    w: 0,
+    h: 0,
+    org_w: 0,
+    org_h: 0,
+    scale_x: 1,
+    scale_y: 1,
+    rotation: 0,
+  };
+
   let top = 0;
   let left = 0;
   let w = 0;
@@ -36,14 +48,13 @@
   let tmp_opacity = 1;
   let img_path = "";
   let g_img = "";
-
-  let shift_state = false;
-  let alt_state = false;
-  let meta_state = false;
+  let curr_tool = "move";
+  let prev_tool = "move";
+  let cursor = "default";
 
   let reset_state = false;
 
-  $: cursor = get_cursor(alt_state, shift_state, meta_state);
+  // $: cursor = get_cursor();
 
   $: {
     if (reset_state) {
@@ -53,63 +64,46 @@
   }
 
   $: {
-    set_image(img_path);
-    console.log("img");
+    cursor = get_cursor(curr_tool);
+    // console.log("cursor", curr_tool);
   }
 
-  // $: {
-  //   console.log("w or h changed");
-  //   if (w) {
-  //     document.querySelector(".image-frame", w);
-  //   }
-  // }
+  $: {
+    set_image(img_path);
+  }
 
   onMount(async () => {
     init();
     window.addEventListener("keydown", (e) => {
+      prev_tool = curr_tool;
+      // console.log(e.key);
       switch (e.key) {
         case "Shift":
-          shift_state = true;
+        case "m":
+          curr_tool = "move";
           break;
         case "Alt":
-          alt_state = true;
+        case "a":
+          curr_tool = "anchor";
           break;
         case "Meta":
-          meta_state = true;
+        case "r":
+          curr_tool = "rotate";
           break;
+        case "s":
         default:
+          curr_tool = "scale";
           break;
       }
-      // if (e.key == "Shift") {
-      //   shift_state = true;
-      // }
-      // if (e.key == "Alt") {
-      //   alt_state = true;
-      // }
-      // if (e.key == "Meta") {
-      //   meta_state = true;
-      // }
-
-      // console.log("keydown", e.code, e.key);
     });
     window.addEventListener("keyup", (e) => {
-      if (e.key == "Shift") {
-        shift_state = false;
-      }
-
-      if (e.key == "Alt") {
-        alt_state = false;
-      }
-
-      if (e.key == "Meta") {
-        meta_state = false;
+      if (["Shift", "Alt", "Meta"].includes(e.key)) {
+        curr_tool = prev_tool;
       }
 
       if (e.key === " ") {
-        console.log("space bar");
         toggle_opacity();
       }
-      // console.log("keyup", e.code, e.key);
     });
   });
 
@@ -119,6 +113,18 @@
   });
 
   function init(w_img = true) {
+    img_info = {
+      top: 0,
+      left: 0,
+      w: 0,
+      h: 0,
+      org_w: 0,
+      org_h: 0,
+      scale_x: 1,
+      scale_y: 1,
+      rotation: 0,
+    };
+
     top = 0;
     left = 0;
     is_dragging = false;
@@ -145,17 +151,22 @@
       return;
     }
 
-    if (shift_state) {
-      shifting(e);
-      return;
-    }
+    switch (curr_tool) {
+      case "move":
+        shifting(e);
+        break;
 
-    if (meta_state) {
-      rotating(e);
-      return;
-    }
+      case "rotate":
+        rotating(e);
+        break;
 
-    scaling(e);
+      case "scale":
+        scaling(e);
+        break;
+
+      default:
+        break;
+    }
   }
 
   function mouse_up(e) {
@@ -163,7 +174,7 @@
   }
 
   function mouse_click(e) {
-    if (!alt_state) {
+    if (curr_tool !== "anchor") {
       return;
     }
     const pos = get_mouse_pos(e);
@@ -191,6 +202,10 @@
   }
 
   function shifting(e) {
+    img_info.left += e.movementX;
+    img_info.top += e.movementY;
+    img_info = img_info;
+
     left += e.movementX;
     top += e.movementY;
     anc_left += e.movementX;
@@ -201,14 +216,25 @@
     const pos = get_mouse_pos(e);
     const anc_pos = get_anchor_pos();
 
+    img_info.scale_x = 1 + e.movementX / (pos[0] - anc_pos[0]);
+    img_info.scale_y = 1 + e.movementY / (pos[1] - anc_pos[1]);
+
     scale.x = 1 + e.movementX / (pos[0] - anc_pos[0]);
     scale.y = 1 + e.movementY / (pos[1] - anc_pos[1]);
+
+    img_info.w *= img_info.scale_x;
+    img_info.h *= img_info.scale_y;
 
     w *= scale.x;
     h *= scale.y;
 
+    img_info.left -= (anc_pos[0] - img_info.left) * (img_info.scale_x - 1);
+    img_info.top -= (anc_pos[1] - img_info.top) * (img_info.scale_y - 1);
+
     left -= (anc_pos[0] - left) * (scale.x - 1);
     top -= (anc_pos[1] - top) * (scale.y - 1);
+
+    img_info = img_info;
   }
 
   function rotating(e) {
@@ -234,34 +260,37 @@
     const X = x * c - y * s;
     const Y = y * c + x * s;
 
+    img_info.rotation += theta;
+    img_info.left += x - X;
+    img_info.top += y - Y;
+
+    img_info = img_info;
+
     rotation += theta;
     left += x - X;
     top += y - Y;
   }
 
-  function get_img_center() {
-    // w/ rotation
-    //
-    // w/o rotation
-    const c_x = left + w / 2;
-    const c_y = top + h / 2;
-  }
-
-  function get_cursor(a, s, m) {
-    let c = "nwse-resize";
-    if (a) {
-      c = "crosshair";
-    } else if (m) {
-      c = "cell";
-    } else if (s) {
-      c = "move";
+  function get_cursor(ct) {
+    let c;
+    switch (ct) {
+      case "anchor":
+        c = "crosshair";
+        break;
+      case "move":
+        c = "move";
+        break;
+      case "rotate":
+        c = "cell";
+        break;
+      default:
+        c = "nwse-resize";
+        break;
     }
-
     return c;
   }
 
   function toggle_opacity() {
-    console.log("toggle");
     if (opacity[0] > 0) {
       tmp_opacity = [opacity[0], opacity[1]];
       opacity = [0, 1];
@@ -282,6 +311,10 @@
 
     img.onload = () => {
       g_img = img.src;
+
+      img_info.org_w = img.width;
+      img_info.org_h = img.height;
+
       org_w = img.width;
       org_h = img.height;
       const r2 = img.height / img.width;
@@ -289,10 +322,16 @@
       if (bw < bh / r2) {
         w = bw;
         h = w * r2;
+        img_info.w = bw;
+        img_info.h = bw * r2;
       } else {
         h = bh;
         w = h / r2;
+        img_info.h = bh;
+        img_info.w = h / r2;
       }
+
+      img_info = img_info;
     };
 
     img.src = convertFileSrc(img_path);
@@ -334,9 +373,9 @@
     bind:anc_left
     bind:org_w
     bind:org_h
-    bind:alt_state
-    bind:shift_state
-    bind:meta_state
+    bind:curr_tool
+    bind:prev_tool
+    bind:img_info
   />
   <div class="image-canvas">
     <div
@@ -358,9 +397,9 @@
   </div>
 </section>
 
-<style>
+<style lang="postcss">
   :root {
-    --top-offset: 60px;
+    --top-offset: 65px;
   }
   .image-canvas {
     position: absolute;
@@ -368,10 +407,9 @@
     left: 0;
     width: 100%;
     height: calc(100% - var(--top-offset));
-    background-color: transparent;
+    background-color: #ffffff03;
     overflow: hidden;
     user-select: none;
-    border: 1px solid #999999;
   }
 
   .image-frame {
