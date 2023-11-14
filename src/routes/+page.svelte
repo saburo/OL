@@ -3,6 +3,8 @@
   import { convertFileSrc } from "@tauri-apps/api/tauri";
   import Controller from "./Controller.svelte";
 
+  // import { appWindow, LogicalSize } from "@tauri-apps/api/window";
+
   // TODO
   //  [x] scale
   //  [x] scale with anchor
@@ -10,13 +12,20 @@
   //  [x] rotate
   //  [x] reselecting anchor point
   //
-  // Click
-  //  w/ Alt key - Change anchor location
+  // Tool Shortcut Keys
+  //  m: Move image
+  //  s: Scale image
+  //  r: Rotate image
+  //  a: Change anchor position
   //
-  // Drag
-  //  w/o keys - Ccale image
-  //  w/ Shift key - Move/shift image
-  //  w/ Command(meta) key - Rotate image
+  // Temporary Tool Change)
+  //  shift: Scale image
+  //  meta (command): Rotate image
+  //  alt/option: Change anchor position
+  //
+  // Shortcut Keys
+  //  space: Toggle opacity (current <- -> 0)
+  //  tab: Hide image to click BadgerScope window
 
   let box;
 
@@ -32,29 +41,26 @@
     rotation: 0,
   };
 
-  let top = 0;
-  let left = 0;
-  let w = 0;
-  let h = 0;
-  let org_w = 0;
-  let org_h = 0;
   let anchor_size;
-  let is_dragging;
   let anc_top = 0;
   let anc_left = 0;
-  let scale = { x: 1, y: 1 };
-  let rotation = 0;
+
   let opacity = [1, 1];
   let tmp_opacity = 1;
   let img_path = "";
   let g_img = "";
+
   let curr_tool = "move";
   let prev_tool = "move";
   let cursor = "default";
 
+  let is_dragging;
+
   let reset_state = false;
 
-  // $: cursor = get_cursor();
+  const win_width = 1200;
+  const win_height = 800;
+  const win_hide_height = 94;
 
   $: {
     if (reset_state) {
@@ -63,10 +69,7 @@
     }
   }
 
-  $: {
-    cursor = get_cursor(curr_tool);
-    // console.log("cursor", curr_tool);
-  }
+  $: cursor = get_cursor(curr_tool);
 
   $: {
     set_image(img_path);
@@ -74,13 +77,29 @@
 
   onMount(async () => {
     init();
-    window.addEventListener("keydown", (e) => {
+
+    const { appWindow, LogicalSize } = window.__TAURI__.window;
+
+    await appWindow.setAlwaysOnTop(true);
+
+    window.addEventListener("keydown", async (e) => {
       prev_tool = curr_tool;
-      // console.log(e.key);
       switch (e.key) {
+        case "Tab":
+          // await toggle_window();
+          const size = await appWindow.innerSize();
+          if (size.height > 200) {
+            await appWindow.setSize(
+              new LogicalSize(win_width, win_hide_height)
+            );
+          } else {
+            await appWindow.setSize(new LogicalSize(win_width, win_height));
+          }
+          break;
+
         case "Shift":
-        case "m":
-          curr_tool = "move";
+        case "s":
+          curr_tool = "scale";
           break;
         case "Alt":
         case "a":
@@ -90,13 +109,14 @@
         case "r":
           curr_tool = "rotate";
           break;
-        case "s":
         default:
-          curr_tool = "scale";
+        case "m":
+          curr_tool = "move";
           break;
       }
     });
-    window.addEventListener("keyup", (e) => {
+
+    window.addEventListener("keyup", async (e) => {
       if (["Shift", "Alt", "Meta"].includes(e.key)) {
         curr_tool = prev_tool;
       }
@@ -105,11 +125,6 @@
         toggle_opacity();
       }
     });
-  });
-
-  onDestroy(async () => {
-    // window.removeEventListener("keyup");
-    // window.removeEventListener("keydown");
   });
 
   function init(w_img = true) {
@@ -125,18 +140,24 @@
       rotation: 0,
     };
 
-    top = 0;
-    left = 0;
     is_dragging = false;
     anchor_size = 10;
-    scale = { x: 1, y: 1 };
-    rotation = 0;
     opacity = [1, 1];
+
     box = document.querySelector(".image-canvas");
     set_anchor_pos(0, 0);
 
     if (w_img) {
       set_image(img_path);
+    }
+  }
+
+  async function toggle_window() {
+    const size = await appWindow.innerSize();
+    if (size.height > 200) {
+      await appWindow.setSize(new LogicalSize(win_width, win_hide_height));
+    } else {
+      await appWindow.setSize(new LogicalSize(win_width, win_height));
     }
   }
 
@@ -206,8 +227,8 @@
     img_info.top += e.movementY;
     img_info = img_info;
 
-    left += e.movementX;
-    top += e.movementY;
+    // left += e.movementX;
+    // top += e.movementY;
     anc_left += e.movementX;
     anc_top += e.movementY;
   }
@@ -219,20 +240,11 @@
     img_info.scale_x = 1 + e.movementX / (pos[0] - anc_pos[0]);
     img_info.scale_y = 1 + e.movementY / (pos[1] - anc_pos[1]);
 
-    scale.x = 1 + e.movementX / (pos[0] - anc_pos[0]);
-    scale.y = 1 + e.movementY / (pos[1] - anc_pos[1]);
-
     img_info.w *= img_info.scale_x;
     img_info.h *= img_info.scale_y;
 
-    w *= scale.x;
-    h *= scale.y;
-
     img_info.left -= (anc_pos[0] - img_info.left) * (img_info.scale_x - 1);
     img_info.top -= (anc_pos[1] - img_info.top) * (img_info.scale_y - 1);
-
-    left -= (anc_pos[0] - left) * (scale.x - 1);
-    top -= (anc_pos[1] - top) * (scale.y - 1);
 
     img_info = img_info;
   }
@@ -248,27 +260,23 @@
     );
     const theta = ang2 - ang1;
 
-    const ctr_x = left + w / 2;
-    const ctr_y = top + h / 2;
+    const ctr_x = img_info.left + img_info.w / 2;
+    const ctr_y = img_info.top + img_info.h / 2;
 
     const x = anc_pos[0] - ctr_x;
     const y = anc_pos[1] - ctr_y;
 
-    const s = Math.sin(theta);
-    const c = Math.cos(theta);
+    const sin = Math.sin(theta);
+    const cos = Math.cos(theta);
 
-    const X = x * c - y * s;
-    const Y = y * c + x * s;
+    const X = x * cos - y * sin;
+    const Y = y * cos + x * sin;
 
     img_info.rotation += theta;
     img_info.left += x - X;
     img_info.top += y - Y;
 
     img_info = img_info;
-
-    rotation += theta;
-    left += x - X;
-    top += y - Y;
   }
 
   function get_cursor(ct) {
@@ -315,45 +323,45 @@
       img_info.org_w = img.width;
       img_info.org_h = img.height;
 
-      org_w = img.width;
-      org_h = img.height;
+      // org_w = img.width;
+      // org_h = img.height;
+
       const r2 = img.height / img.width;
 
       if (bw < bh / r2) {
-        w = bw;
-        h = w * r2;
+        // w = bw;
+        // h = w * r2;
         img_info.w = bw;
         img_info.h = bw * r2;
       } else {
-        h = bh;
-        w = h / r2;
+        // h = bh;
+        // w = h / r2;
         img_info.h = bh;
-        img_info.w = h / r2;
+        img_info.w = img_info.h / r2;
       }
 
       img_info = img_info;
     };
-
     img.src = convertFileSrc(img_path);
   }
 
-  async function read_file_contents() {
-    try {
-      const selected_path = await open({
-        multiple: false,
-        title: "Open Image File",
-      });
-
-      if (selected_path == null) {
-        return;
-      }
-
-      img_path = selected_path;
-      set_image(selected_path);
-    } catch (err) {
-      console.error(err);
-    }
-  }
+  // async function read_file_contents() {
+  //   try {
+  //     const selected_path = await open({
+  //       multiple: false,
+  //       title: "Open Image File",
+  //     });
+  //
+  //     if (selected_path == null) {
+  //       return;
+  //     }
+  //
+  //     img_path = selected_path;
+  //     set_image(selected_path);
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // }
 </script>
 
 <svelte:window on:mouseup={mouse_up} on:mousemove={mouse_moving} />
@@ -361,21 +369,14 @@
 <section>
   <div class="anchor" style="left: {anc_left}px; top: {anc_top}px;" />
   <Controller
-    bind:opacity
     bind:img_path
     bind:reset_state
-    bind:rotation
-    bind:top
-    bind:left
-    bind:w
-    bind:h
     bind:anc_top
     bind:anc_left
-    bind:org_w
-    bind:org_h
     bind:curr_tool
     bind:prev_tool
     bind:img_info
+    bind:opacity
   />
   <div class="image-canvas">
     <div
@@ -384,11 +385,11 @@
       on:mousedown={mouse_down}
       role="none"
       style="
-      top: {top}px; 
-      left: {left}px; 
-      width: {w}px; 
-      height: {h}px; 
-      rotate: {rotation}rad;
+      top: {img_info.top}px; 
+      left: {img_info.left}px; 
+      width: {img_info.w}px; 
+      height: {img_info.h}px; 
+      rotate: {img_info.rotation}rad;
       opacity: {opacity[0]};
       background-image: url({g_img});
       cursor: {cursor};
@@ -414,7 +415,6 @@
 
   .image-frame {
     position: relative;
-    /* border: 1px solid #ff0000; */
     background-repeat: no-repeat;
     background-size: 100% 100%;
     user-select: none;
@@ -424,7 +424,6 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    /* background-color: steelblue; */
     background-color: #fc0fc0;
     border-radius: 50%;
     z-index: 100;

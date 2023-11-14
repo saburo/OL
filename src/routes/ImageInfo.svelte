@@ -1,9 +1,50 @@
 <script>
   import Slider from "@bulatdashiev/svelte-slider";
+
   export let img_info;
   export let anc_top;
   export let anc_left;
   export let opacity;
+
+  let info_data;
+
+  $: {
+    info_data = [
+      {
+        section: "Position",
+        label: ["X", "Y"],
+        value: [img_info["left"], img_info["top"]],
+        digits: 2,
+      },
+      {
+        section: "Size",
+        label: ["W", "H"],
+        value: [img_info["w"], img_info["h"]],
+        digits: 2,
+      },
+      {
+        section: "Original Size",
+        label: ["W", "H"],
+        value: [img_info["org_w"], img_info["org_h"]],
+        digits: 2,
+      },
+      {
+        section: "Scale",
+        label: ["X", "Y"],
+        value: [
+          img_info["w"] / img_info["org_w"],
+          img_info["h"] / img_info["org_h"],
+        ],
+        digits: 4,
+      },
+      {
+        section: "Anchor",
+        label: ["X", "Y"],
+        value: [anc_left, anc_top],
+        digits: 2,
+      },
+    ];
+  }
 
   function round(n, digits = 2) {
     const d = Math.pow(10, digits);
@@ -12,55 +53,32 @@
 </script>
 
 <div class="info mono">
-  <div class="info-item">
-    <div class="info-item-section">Position</div>
-    <div class="info-item-label">X</div>
-    <div class="info-item-label2">Y</div>
-    <input class="info-item-value" type="text" value={round(img_info.left)} />
-    <input class="info-item-value2" type="text" value={round(img_info.top)} />
-  </div>
-  <div class="info-item">
-    <div class="info-item-section">Size</div>
-    <div class="info-item-label">W</div>
-    <div class="info-item-label2">H</div>
-    <input class="info-item-value" type="text" value={round(img_info.w)} />
-    <input class="info-item-value2" type="text" value={round(img_info.h)} />
-  </div>
-  <div class="info-item">
-    <div class="info-item-section">Original Size</div>
-    <div class="info-item-label">W</div>
-    <div class="info-item-label2">H</div>
-    <input class="info-item-value" type="text" value={round(img_info.org_w)} />
-    <input class="info-item-value2" type="text" value={round(img_info.org_h)} />
-  </div>
-  <div class="info-item">
-    <div class="info-item-section">Scale</div>
-    <div class="info-item-label">X</div>
-    <div class="info-item-label2">Y</div>
-    <input
-      class="info-item-value"
-      type="text"
-      value={round(img_info.w / img_info.org_w, 4)}
-    />
-    <input
-      class="info-item-value2"
-      type="text"
-      value={round(img_info.h / img_info.org_h, 4)}
-    />
-  </div>
-  <div class="info-item">
-    <div class="info-item-section">Anchor</div>
-    <div class="info-item-label">X</div>
-    <div class="info-item-label2">Y</div>
-    <input class="info-item-value" type="text" value={round(anc_left)} />
-    <input class="info-item-value2" type="text" value={round(anc_top)} />
-  </div>
+  {#each info_data as { section, label, value, digits }}
+    <div class="info-item">
+      <div class="info-item-section">{section}</div>
+      <div class="info-item-label">{label[0]}</div>
+      <div class="info-item-label2">{label[1]}</div>
+      <input
+        class="info-item-value"
+        type="text"
+        value={round(value[0], digits)}
+        readonly
+      />
+      <input
+        class="info-item-value2"
+        type="text"
+        value={round(value[1], digits)}
+        readonly
+      />
+    </div>
+  {/each}
   <div class="info-item rotation">
     <div class="info-item-section">Rotation</div>
     <input
       style="grid-column: 1; grid-row: 2; align-self: center; justify-self: center; width: 80px"
       type="text"
       value={round((img_info.rotation * 180) / Math.PI)}
+      readonly
     />
   </div>
   <div class="info-item opacity">
@@ -88,7 +106,7 @@
     display: grid;
     width: 105px;
     grid-template-columns: 30px 70px;
-    grid-auto-rows: 14px auto auto;
+    grid-auto-rows: 25px auto auto;
     grid-auto-flow: column;
   }
 
@@ -96,6 +114,7 @@
     grid-column: 1 / 3;
     grid-row: 1;
     text-align: center;
+    line-height: 2em;
     font-weight: bold;
   }
 
