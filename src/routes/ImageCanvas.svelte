@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from "svelte";
   import { convertFileSrc } from "@tauri-apps/api/tauri";
 
   export let img_info;
@@ -16,6 +17,12 @@
     set_image(img_path);
   }
 
+  onMount(() => {
+    if (box == undefined) {
+      box = window.document.querySelector(".image-canvas");
+    }
+  });
+
   export function set_image(img_path) {
     if (img_path == "" || box == undefined) return;
 
@@ -32,24 +39,20 @@
       img_info.org_w = img.width;
       img_info.org_h = img.height;
 
-      // org_w = img.width;
-      // org_h = img.height;
-
       const r2 = img.height / img.width;
 
       if (bw < bh / r2) {
-        // w = bw;
-        // h = w * r2;
         img_info.w = bw;
         img_info.h = bw * r2;
       } else {
-        // h = bh;
-        // w = h / r2;
         img_info.h = bh;
         img_info.w = img_info.h / r2;
       }
-
-      img_info = img_info;
+      img_info.left = 0;
+      img_info.top = 0;
+      img_info.scale_x = 1;
+      img_info.scale_y = 1;
+      img_info.rotation = 0;
     };
 
     img.src = convertFileSrc(img_path);
@@ -98,10 +101,7 @@
   }
 
   function get_mouse_pos(e) {
-    return [
-      e.clientX - box.offsetLeft + window.pageXOffset,
-      e.clientY - box.offsetTop + window.pageYOffset,
-    ];
+    return [e.clientX - box.offsetLeft, e.clientY - box.offsetTop];
   }
 
   function shifting(e) {
@@ -160,7 +160,6 @@
   }
 
   function get_anchor_pos() {
-    console.log(".");
     if (box == undefined) return [0, 0];
     return [
       anchor.left + anchor.size / 2 - box.offsetLeft,
@@ -169,7 +168,6 @@
   }
 
   export function set_anchor_pos(x, y) {
-    console.log("x");
     if (box == undefined) return;
     anchor.left = x - anchor.size / 2 + box.offsetLeft;
     anchor.top = y - anchor.size / 2 + box.offsetTop;

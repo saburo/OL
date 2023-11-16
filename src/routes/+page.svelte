@@ -1,12 +1,10 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import Controller from "./Controller.svelte";
   import ImageCanvas from "./ImageCanvas.svelte";
 
   let setAnchorPos;
   let setMainImage;
-
-  let parent_myfunc;
 
   // TODO
   //  [x] scale
@@ -85,12 +83,15 @@
 
     // For transparent window in Windows
     // Window will be transparent after resizeing
-    // await appWindow.setSize(new LogicalSize(0, 0));
-    // await appWindow.setSize(new LogicalSize(win_width, win_height));
+    await appWindow.setSize(new LogicalSize(0, 0));
+    await appWindow.setSize(new LogicalSize(win_width, win_height));
 
     window.addEventListener("keydown", async (e) => {
       prev_tool = curr_tool;
       switch (e.key) {
+        case " ": // do nothing
+          return;
+
         case "Tab":
           // await toggle_window();
           const size = await appWindow.innerSize();

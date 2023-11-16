@@ -62,7 +62,7 @@
         "fullscreen": false,
         "height": 800,
         "resizable": true,
-        "title": "Over Lay",
+        "title": "Overlay",
         "width": 1200,
         "acceptFirstMouse": false
       }
