@@ -49,13 +49,12 @@
         img_info.h = bh;
         img_info.w = img_info.h / r2;
       }
-      img_info.top = 0;
+
       img_info.left = 0;
-      img_info.rotation = 0;
+      img_info.top = 0;
       img_info.scale_x = 1;
       img_info.scale_y = 1;
-
-      img_info = img_info;
+      img_info.rotation = 0;
     };
 
     img.src = convertFileSrc(img_path);

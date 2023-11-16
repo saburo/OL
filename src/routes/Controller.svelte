@@ -13,7 +13,6 @@
   export let img_info;
 
   async function select_image_file() {
-    console.log("select image file");
     try {
       const selected_path = await open({
         multiple: false,
