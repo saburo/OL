@@ -1,12 +1,10 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import Controller from "./Controller.svelte";
   import ImageCanvas from "./ImageCanvas.svelte";
 
   let setAnchorPos;
   let setMainImage;
-
-  let parent_myfunc;
 
   // TODO
   //  [x] scale
@@ -91,6 +89,9 @@
     window.addEventListener("keydown", async (e) => {
       prev_tool = curr_tool;
       switch (e.key) {
+        case " ": // ignore space key
+          return;
+
         case "Tab":
           // await toggle_window();
           const size = await appWindow.innerSize();
@@ -156,14 +157,14 @@
     setAnchorPos(0, 0);
   }
 
-  async function toggle_window() {
-    const size = await appWindow.innerSize();
-    if (size.height > 200) {
-      await appWindow.setSize(new LogicalSize(win_width, win_hide_height));
-    } else {
-      await appWindow.setSize(new LogicalSize(win_width, win_height));
-    }
-  }
+  // async function toggle_window() {
+  //   const size = await appWindow.innerSize();
+  //   if (size.height > 200) {
+  //     await appWindow.setSize(new LogicalSize(win_width, win_hide_height));
+  //   } else {
+  //     await appWindow.setSize(new LogicalSize(win_width, win_height));
+  //   }
+  // }
 
   function get_cursor(ct) {
     let c;
