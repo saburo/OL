@@ -2,8 +2,7 @@
   import Slider from "@bulatdashiev/svelte-slider";
 
   export let img_info;
-  export let anc_top;
-  export let anc_left;
+  export let anchor;
   export let opacity;
 
   let info_data;
@@ -40,7 +39,10 @@
       {
         section: "Anchor",
         label: ["X", "Y"],
-        value: [anc_left, anc_top],
+        value: [
+          anchor.left + anchor.size / 2 - img_info["left"],
+          anchor.top - 65 + anchor.size / 2 - img_info["top"],
+        ],
         digits: 2,
       },
     ];
@@ -60,11 +62,13 @@
       <div class="info-item-label2">{label[1]}</div>
       <input
         class="info-item-value"
+        tabindex="-1"
         type="text"
         value={round(value[0], digits)}
         readonly
       />
       <input
+        tabindex="-1"
         class="info-item-value2"
         type="text"
         value={round(value[1], digits)}
@@ -77,6 +81,7 @@
     <input
       style="grid-column: 1; grid-row: 2; align-self: center; justify-self: center; width: 80px"
       type="text"
+      tabindex="-1"
       value={round((img_info.rotation * 180) / Math.PI)}
       readonly
     />

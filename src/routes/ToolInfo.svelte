@@ -14,69 +14,48 @@
         curr_tool = "anchor";
         break;
 
-      case "shift": // move
-        curr_tool = "move";
+      case "shift": // scal
+        curr_tool = "scale";
         break;
 
-      default: // scale
-        curr_tool = "scale";
+      case "": // move
+        curr_tool = "move";
     }
   }
+
+  const tools = [
+    { label: "Move (m)", key: "", tool: "move" },
+    { label: "Scale (s)", key: "shift", tool: "scale" },
+    { label: "Rotate (r)", key: "meta", tool: "rotate" },
+    { label: "Anchor (a)", key: "alt", tool: "anchor" },
+  ];
 </script>
 
-<div class="tool-display">
-  <div
-    class="tool-btn"
-    role="none"
-    on:click={() => {
-      update_tool_btn_status("shift");
-    }}
-    class:active={curr_tool === "move"}
-  >
-    Move (M)
-  </div>
-  <div
-    class="tool-btn"
-    role="none"
-    on:click={() => {
-      update_tool_btn_status();
-    }}
-    class:active={curr_tool === "scale"}
-  >
-    Scale (S)
-  </div>
-  <div
-    class="tool-btn"
-    role="none"
-    on:click={() => {
-      update_tool_btn_status("meta");
-    }}
-    class:active={curr_tool === "rotate"}
-  >
-    Rotate (R)
-  </div>
-  <div
-    class="tool-btn"
-    role="none"
-    on:click={() => {
-      update_tool_btn_status("alt");
-    }}
-    class:active={curr_tool === "anchor"}
-  >
-    Anchor (A)
-  </div>
+<div class="grid grid-cols-2 gap-x-2 gap-y-1 mr-2">
+  {#each tools as tool}
+    <div
+      class="tool-btn w-16"
+      role="none"
+      on:click={() => {
+        update_tool_btn_status(tool.key);
+      }}
+      class:active={curr_tool === tool.tool}
+    >
+      {tool.label}
+    </div>
+  {/each}
 </div>
 
+<!-- // .tool-display { -->
+<!-- //   display: ; -->
+<!-- //   flex-direction: row; -->
+<!-- //   flex-wrap: wrap; -->
+<!-- //   width: 200px; -->
+<!-- //   align-content: stretch; -->
+<!-- //   align-items: stretch; -->
+<!-- //   cursor: pointer; -->
+<!-- // } -->
 <style lang="postcss">
-  .tool-display {
-    display: flex;
-    flex-direction: column;
-    width: 80px;
-    align-content: stretch;
-    align-items: stretch;
-    cursor: pointer;
-  }
-
   .tool-btn {
     font-size: 60%;
     text-align: center;

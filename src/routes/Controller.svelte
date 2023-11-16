@@ -4,8 +4,7 @@
   import ToolInfo from "./ToolInfo.svelte";
 
   export let opacity;
-  export let anc_left;
-  export let anc_top;
+  export let anchor;
   export let img_path;
   export let reset_state;
   export let curr_tool;
@@ -13,7 +12,8 @@
 
   export let img_info;
 
-  async function read_file_contents() {
+  async function select_image_file() {
+    console.log("select image file");
     try {
       const selected_path = await open({
         multiple: false,
@@ -36,12 +36,12 @@
 </script>
 
 <div class="controller">
-  <ImageInfo bind:img_info bind:opacity bind:anc_top bind:anc_left />
+  <ImageInfo bind:img_info bind:opacity bind:anchor />
   <ToolInfo bind:curr_tool bind:prev_tool />
   <button
     class="rounded-md bg-blue-500 hover:bg-blue-800 text-white sm:px-5 sm:py-3 px-4 py-2 uppercase"
-    on:click={read_file_contents}
-    >Select Image…
+    on:click={select_image_file}
+    >Image…
   </button>
   <button
     class="rounded-md bg-rose-500 hover:bg-rose-800 text-white sm:px-8 sm:py-3 px-4 py-2 uppercase"
@@ -51,13 +51,16 @@
 
 <style lang="postcss">
   .controller {
+    position: absolute;
+    top: 0; /* calc(100vh - var(--top-offset)); */
+    height: var(--top-offset);
+    width: 100vw;
+
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
     align-items: center;
-    height: var(--top-offset);
-    width: 100%;
-    background: #eeeeeeee;
+    background: #eeeeee;
     font-family: monospace;
     user-select: none;
   }
