@@ -157,14 +157,14 @@
     setAnchorPos(0, 0);
   }
 
-  // async function toggle_window() {
-  //   const size = await appWindow.innerSize();
-  //   if (size.height > 200) {
-  //     await appWindow.setSize(new LogicalSize(win_width, win_hide_height));
-  //   } else {
-  //     await appWindow.setSize(new LogicalSize(win_width, win_height));
-  //   }
-  // }
+  async function toggle_window() {
+    const size = await appWindow.innerSize();
+    if (size.height > 200) {
+      await appWindow.setSize(new LogicalSize(win_width, win_hide_height));
+    } else {
+      await appWindow.setSize(new LogicalSize(win_width, win_height));
+    }
+  }
 
   function get_cursor(ct) {
     let c;
@@ -183,15 +183,6 @@
         break;
     }
     return c;
-  }
-
-  function toggle_opacity() {
-    if (opacity[0] > 0) {
-      tmp_opacity = [opacity[0], opacity[1]];
-      opacity = [0, 1];
-    } else {
-      opacity = [tmp_opacity[0], tmp_opacity[1]];
-    }
   }
 </script>
 

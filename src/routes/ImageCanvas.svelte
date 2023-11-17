@@ -15,7 +15,6 @@
 
   $: {
     set_image(img_path);
-    opacity = 1;
   }
 
   onMount(() => {
@@ -55,6 +54,7 @@
       img_info.scale_x = 1;
       img_info.scale_y = 1;
       img_info.rotation = 0;
+      opacity = [1, 1];
     };
 
     img.src = convertFileSrc(img_path);
